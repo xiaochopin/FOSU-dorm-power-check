@@ -1,0 +1,34 @@
+name: dorm-power-check
+
+on:
+  schedule:
+    # 每天 00:00 和 12:00 UTC（北京时间 08:00 和 20:00）
+    - cron: '0 0,12 * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install requests
+
+      - name: 查询电量并预警
+        env:
+          DORM_TOKEN:     ${{ secrets.DORM_TOKEN }}
+          GITHUB_TOKEN:   ${{ secrets.GITHUB_TOKEN }}
+          THRESHOLD:      "40"
+          IMPL_TYPE:      ${{ secrets.IMPL_TYPE }}
+          SCHOOL_AREA_NO: ${{ secrets.SCHOOL_AREA_NO }}
+          BUILDING_NO:    ${{ secrets.BUILDING_NO }}
+          ROOM_NUM:       ${{ secrets.ROOM_NUM }}
+        run: python check.py
