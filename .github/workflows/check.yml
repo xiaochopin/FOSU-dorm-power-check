@@ -1,9 +1,6 @@
 name: dorm-power-check
 
 on:
-  schedule:
-    # 每天 00:00 和 12:00 UTC（北京时间 08:00 和 20:00）
-    - cron: '0 0,12 * * *'
   workflow_dispatch:
 
 permissions:
