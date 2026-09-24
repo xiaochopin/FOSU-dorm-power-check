@@ -108,6 +108,24 @@ Issue 的 assignee 是仓库拥有者，所以**你一定会收到 GitHub 邮件
 
 问 AI 给你一条验证代码就行了这里不再赘述。嫌麻烦可以跳过这一步。
 
+把你抓取的内容和下面这段发给任意 AI，让它帮你生成验证命令：
+
+```
+请帮我生成一条 curl 命令，要求：
+
+- 方法：POST
+- URL：https://user.fosu.edu.cn/powerfee/getBalance
+- 请求头：Content-Type: application/x-www-form-urlencoded
+- 请求体（x-www-form-urlencoded）：
+    implType=<填入>
+    schoolAreaNo=<填入>
+    buildingNo=<填入>
+    roomNum=<填入>
+    from=wxminiprogram
+    token=<填入你的 token>
+```
+
+
 ## 配置 Secrets
 
 仓库 → **Settings → Secrets and variables → Actions → New repository secret**
