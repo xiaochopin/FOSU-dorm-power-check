@@ -69,8 +69,8 @@ if balance < THRESHOLD:
             headers=gh_headers,
             json={
                 "body": (
-                    f"⏰ **{bj_now()}** 电量仍为 **{balance:.2f} 度**，"
-                    f"低于阈值 {THRESHOLD:g} 度，请及时充值。"
+                    f"⏰ **{bj_now()}** 电量为 **{balance:.2f} 度**，"
+                    f"仍低于阈值 {THRESHOLD:g} 度，请及时充值。"
                 )
             },
             timeout=15,
