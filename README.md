@@ -101,7 +101,6 @@ Issue 的 assignee 是仓库拥有者，所以**你一定会收到 GitHub 邮件
 | schoolAreaNo | `JSON` 标签 |
 | buildingNo | `JSON` 标签 |
 | roomNum | `JSON` 标签 |
----
 
 
 ### 用 curl 验证
@@ -146,7 +145,7 @@ Issue 的 assignee 是仓库拥有者，所以**你一定会收到 GitHub 邮件
 - **名字区分大小写**，必须完全一致。
 - **前后不要有空格**，从抓包复制时容易带上。
 
-### 测试运行
+## 测试运行
 
 配完后，去 **Actions** 标签：
 
@@ -163,7 +162,7 @@ Issue 的 assignee 是仓库拥有者，所以**你一定会收到 GitHub 邮件
 
 此时你的邮箱应该会收到一封 GitHub 通知。
 
-## 自定义阈值与频率
+## 自定义阈值与自动运行
 
 编辑 `.github/workflows/check.yml`：
 
@@ -176,24 +175,104 @@ env:
 
 ### 启用定时任务
 
-默认只支持手动触发。想自动跑，修改 `on:` ：
+### 方案 1：GitHub Actions schedule
+
+修改 `on:` ：
 
 ```yaml
 on:
   schedule:
-    - cron: '0 0,12 * * *'   # 每天 UTC 0 点和 12 点
+    - cron: '0 0,12 * * *'
   workflow_dispatch:
 ```
 
-**cron 使用 UTC 时间**，换算参考：
 
-| 运行方案 | cron |
+> GitHub 免费版的定时任务在高峰期可能延迟 10~30 分钟，甚至偶尔跳过。
+
+### 方案 2：cron-job.org（推荐）
+
+用 cron-job.org 稳定触发（推荐）
+
+GitHub 自带的 `schedule` 在免费账户下**延迟严重、甚至不触发**，尤其是新仓库。  
+如果发现定时任务一直不跑，建议改用 **cron-job.org** 通过 API 触发，稳定准时。
+
+原理：外部服务定时调用 GitHub 的 `workflow_dispatch` API，让任务**插队执行**，绕过拥挤的定时队列。
+
+#### 1. 生成 GitHub PAT
+
+1. 打开 https://github.com/settings/tokens
+2. 点 **Generate new token** → **Generate new token (classic)**
+3. 填写：
+   - **Note**：`cron-job`（随便起名）
+   - **Expiration**：90 天或 No expiration
+   - **Scopes**：勾选
+     - ✅ `repo`（整个大类）
+     - ✅ `workflow`
+4. 拉到底点 **Generate token**
+5. **复制那串 `ghp_xxxxx`**（只显示一次）
+
+> ⚠️ 建议用 **Classic Token**。
+
+#### 2. 在 cron-job.org 建任务
+
+1. 注册登录 https://cron-job.org
+2. 点 **Create cronjob**
+3. 填写：
+
+| 字段 | 值 |
 |---|---|
-| 每天 8:00 和 20:00 | `0 0,12 * * *` |
-| 每天 9:00 | `0 1 * * *` |
-| 每 6 小时 | `0 */6 * * *` |
+| **Title** | `dorm-power-check` |
+| **URL** | `https://api.github.com/repos/你的用户名/你的仓库名/actions/workflows/check.yml/dispatches` |
+| **Schedule** | 自定义，如每天 8:12 和 20:12 |
+| **Request method** | `POST` |
+| **Request body** | `{"ref":"main"}` |
 
-> GitHub 免费版的定时任务在高峰期可能延迟 10~30 分钟，甚至偶尔跳过。对电量监控无影响。
+4. 展开 **Advanced** → **Headers**，添加三行：
+
+| Header | Value |
+|---|---|
+| `Authorization` | `Bearer ghp_你的token` |
+| `Accept` | `application/vnd.github+json` |
+| `Content-Type` | `application/json` |
+
+> ⚠️ `Bearer` 后面**有个空格**，然后才是 `ghp_...`
+
+5. **Timezone 选 `Asia/Shanghai`**，之后填的时间就是北京时间，不用换算 UTC
+
+#### 3. 测试
+
+点任务页面的 **TEST RUN**：
+
+| HTTP 状态 | 说明 |
+|---|---|
+| `204 No Content` | ✅ 成功 |
+| `401` | token 错，或没加 `Bearer ` |
+| `403` | token 权限不够，检查是否勾了 `repo` + `workflow` |
+| `404` | URL 错，或分支名不对，或 token 权限不足 |
+
+测试成功后，去仓库 **Actions** 页面，应该立刻出现一条新的运行记录。
+
+#### 4. 移除 GitHub 原生 schedule
+
+改用外部触发后，把 workflow 里的 `schedule` 注释或删除，避免两套机制冲突：
+
+```yaml
+on:
+  workflow_dispatch:      # 只保留这个
+  # schedule:
+  #   - cron: '12 0,12 * * *'
+```
+
+#### 常见问题
+
+**Q：为什么返回 404？**  
+A：最常见是 PAT 权限不足——GitHub 对无权限访问会返回 404 而非 403，用来隐藏资源是否存在。确认勾了 `repo` 和 `workflow`。
+
+**Q：PAT 会过期吗？**  
+A：设了有效期的话到期就失效，任务会突然不触发。建议设 **No expiration**，或在日历里加提醒。
+
+**Q：cron-job.org 免费版够用吗？**  
+A：够。免费版支持最少 1 分钟间隔、最多 50 个任务，每天 2 次完全没问题。
 
 
 ## 常见问题
